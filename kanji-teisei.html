@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>漢字訂正テスト</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#5e35a8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="漢字訂正">
+<style>
+:root{
+  --primary:#d9c8f0; --secondary:#f1eafb; --accent:#5e35a8; --accent2:#9b72e0; --bg:#fdfcff;
+  --surface:#ffffff; --surface-alt:#f7f3fd; --ink:#2f2640; --ink-soft:#6f6585; --border:#b79be6; --border-soft:#e3d8f5;
+  --deep:#3f2275; --off-bg:#e6f2fd; --off-bd:#9cc7ef; --ok:#2e7d4f; --ok-bg:#e7f5ec; --ng:#c62828; --ng-bg:#fdecec;
+  --w2:#e0701e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;
+  font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom)}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px 40px}
+h1{font-size:21px;text-align:center;margin:8px 0 2px;color:var(--deep);letter-spacing:.04em}
+.sub{text-align:center;font-size:12.5px;color:var(--ink-soft);margin:0 0 12px}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--deep);padding:10px 14px;touch-action:manipulation}
+button.main{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:bold}
+button:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:nowrap}
+.row>*{flex:1 1 0;min-width:0}
+.card{background:var(--surface);border:1.5px solid var(--border-soft);border-radius:16px;padding:12px 14px;margin:10px 0}
+.lbl{font-size:13px;color:var(--ink-soft);margin:0 0 6px}
+/* 週の切りかえ（未選択は薄いブルー） */
+.pills{display:flex;gap:6px}
+.pills button{flex:1;padding:8px 4px;background:var(--off-bg);border-color:var(--off-bd);color:#2b5f8f;font-size:15px}
+.pills button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:bold}
+/* セット一覧 */
+.sets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:560px){.sets{grid-template-columns:repeat(5,1fr)}}
+.set{padding:10px 6px;text-align:center;border-radius:14px;background:var(--surface-alt);border:1.5px solid var(--border-soft);color:var(--ink)}
+.set b{display:block;font-size:17px;color:var(--deep)}
+.set .sc{font-size:12.5px;color:var(--ink-soft);display:block;min-height:1.5em}
+.set.done{border-color:var(--border)}
+.set .sc .w1{color:var(--accent);font-weight:bold}
+.set .sc .w2{color:var(--w2);font-weight:bold}
+.banner{background:var(--secondary);border:1.5px solid var(--border);border-radius:14px;padding:10px 12px;font-size:14px;margin:10px 0;display:flex;gap:10px;align-items:center}
+.banner span{flex:1}
+.banner button{flex:0 0 auto;padding:7px 12px}
+.hint{font-size:12.5px;color:var(--ink-soft);margin:6px 2px}
+[hidden]{display:none!important}
+/* テスト画面 */
+.qhead{display:flex;align-items:center;gap:10px;margin:6px 0 10px}
+.qhead .t{flex:1;font-weight:bold;color:var(--deep)}
+.qhead button{padding:7px 14px}
+.prog{height:6px;background:var(--border-soft);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.prog i{display:block;height:100%;background:var(--accent2);width:0}
+.sent{font-size:23px;line-height:2.1;letter-spacing:.03em;padding:14px 12px;background:var(--surface);border:1.5px solid var(--border-soft);border-radius:16px;word-break:break-all}
+.sent .k{display:inline-block;border-bottom:2px dotted var(--off-bd);padding:0 1px;border-radius:5px;cursor:pointer;line-height:1.5}
+.sent .k.sel{background:var(--ng-bg);color:var(--ng);border-bottom:2px solid var(--ng);font-weight:bold}
+.step{font-size:14px;color:var(--ink-soft);margin:14px 2px 6px}
+.step b{color:var(--deep)}
+.ansrow{display:flex;gap:10px;align-items:center}
+.box{width:64px;height:64px;border:2px solid var(--off-bd);background:var(--off-bg);border-radius:14px;font-size:34px;display:flex;align-items:center;justify-content:center;color:var(--ng);flex:0 0 auto}
+.arrow{font-size:22px;color:var(--ink-soft)}
+.ansrow input{width:84px;height:64px;font-size:34px;text-align:center;border:2px solid var(--border);border-radius:14px;font-family:inherit;color:var(--ink);background:#fff;flex:0 0 auto}
+.ansrow .note{font-size:12.5px;color:var(--ink-soft);flex:1}
+.qbtns{display:flex;gap:8px;margin-top:18px}
+.qbtns button{flex:1;padding:13px 8px}
+/* 結果 */
+.score{text-align:center;margin:8px 0}
+.score .big{font-size:46px;font-weight:bold;color:var(--deep);line-height:1.1}
+.score .big small{font-size:20px;color:var(--ink-soft)}
+.res{border-radius:14px;padding:10px 12px;margin:8px 0;border:1.5px solid var(--border-soft);background:var(--surface)}
+.res.ok{border-color:#9fd3b2;background:var(--ok-bg)}
+.res.ng{border-color:#efb1b1;background:var(--ng-bg)}
+.res .top{display:flex;gap:8px;align-items:baseline}
+.res .mk{font-size:20px;font-weight:bold;width:24px;flex:0 0 auto}
+.res.ok .mk{color:var(--ok)} .res.ng .mk{color:var(--ng)}
+.res .tx{flex:1;font-size:15px}
+.res .tx em{font-style:normal;color:var(--ng);font-weight:bold;text-decoration:underline}
+.res .ans{font-size:14px;margin:4px 0 0 32px;color:var(--ink-soft)}
+.res .ans b{color:var(--ink);font-size:17px}
+.res .fix{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:8px;flex:0 0 auto}
+/* 記録 */
+.chart{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;justify-content:center;font-size:13px;color:var(--ink-soft);margin-top:2px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+table.hist{width:100%;border-collapse:collapse;font-size:14px}
+table.hist th,table.hist td{border-bottom:1px solid var(--border-soft);padding:7px 4px;text-align:left;vertical-align:top}
+table.hist th{font-size:12.5px;color:var(--ink-soft);font-weight:normal}
+.chip{display:inline-block;border-radius:8px;padding:1px 7px;margin:2px 4px 2px 0;font-size:13px;background:var(--surface-alt);border:1px solid var(--border-soft);white-space:nowrap}
+.chip.w1{border-color:var(--border);color:var(--accent)}
+.chip.w2{border-color:#f2b98d;color:#a14d0f;background:#fff6ee}
+.chip.w3{border-color:#9fd3b2;color:var(--ok);background:var(--ok-bg)}
+/* まちがいリスト */
+.mis{border:1.5px solid var(--border-soft);border-radius:14px;padding:10px 12px;margin:8px 0;background:var(--surface)}
+.mis .tx{font-size:15px}
+.mis .tx em{font-style:normal;color:var(--ng);font-weight:bold;text-decoration:underline}
+.mis .meta{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);margin-top:4px;flex-wrap:wrap}
+.mis .meta b{color:var(--ink);font-size:15px}
+.mis .meta button{margin-left:auto;padding:5px 10px;font-size:13px}
+.dots{letter-spacing:1px}
+textarea{width:100%;min-height:90px;font-size:12px;border:1.5px solid var(--border);border-radius:10px;padding:8px;font-family:ui-monospace,monospace}
+.modal{position:fixed;inset:0;background:rgba(30,20,50,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal .card{max-width:420px;width:100%}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--deep);color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;z-index:20}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ===== トップ ===== -->
+<section id="vTop">
+  <h1>📝 学習空間 漢字訂正テスト 📝</h1>
+  <p class="sub">文の中のまちがった漢字をタップして、正しい漢字を書こう（1回10問・全10回）</p>
+
+  <div class="card">
+    <p class="lbl">いま何週目？（記録とグラフは週ごとに分かれます）</p>
+    <div class="pills" id="weekPills"></div>
+  </div>
+  <div class="banner" id="weekBanner" hidden><span id="weekBannerText"></span><button id="weekNext" class="main">次の週へ</button></div>
+
+  <div class="sets" id="setGrid"></div>
+
+  <div class="row" style="margin-top:12px">
+    <button id="btnNote">まちがいリスト（<span id="noteCount">0</span>問）</button>
+    <button id="btnRec">記録とグラフ</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button id="btnInstall" hidden>ホーム画面に追加</button>
+  </div>
+  <p class="hint" id="saveHint"></p>
+</section>
+
+<!-- ===== テスト ===== -->
+<section id="vQuiz" hidden>
+  <div class="qhead"><span class="t" id="qTitle"></span><button id="qQuit">中断</button></div>
+  <div class="prog"><i id="qProg"></i></div>
+  <div class="sent" id="qSent"></div>
+  <p class="step"><b>①</b> まちがっている漢字をタップ　<b>②</b> 正しい漢字を書く</p>
+  <div class="ansrow">
+    <div class="box" id="qTap">？</div><span class="arrow">→</span>
+    <input id="qInp" maxlength="2" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="正">
+    <span class="note">「正」の字を1字入力</span>
+  </div>
+  <div class="qbtns">
+    <button id="qSkip">わからない</button>
+    <button id="qNext" class="main" disabled>次へ</button>
+  </div>
+</section>
+
+<!-- ===== 結果 ===== -->
+<section id="vRes" hidden>
+  <h1 id="rTitle"></h1>
+  <div class="score"><div class="big"><span id="rScore"></span><small> / <span id="rTotal"></span>問</small></div>
+    <div class="hint" id="rSub"></div></div>
+  <div id="rList"></div>
+  <div class="row" style="margin-top:10px">
+    <button id="rRetryWrong" class="main" style="white-space:nowrap;font-size:15px">まちがい直し <span id="rWrongN"></span>問</button>
+    <button id="rRetry">もう一度</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button id="rRec">記録とグラフ</button>
+    <button id="rTop">トップへ</button>
+  </div>
+</section>
+
+<!-- ===== 記録 ===== -->
+<section id="vRec" hidden>
+  <div class="qhead"><span class="t">記録とグラフ</span><button id="recBack">トップへ</button></div>
+  <div class="card">
+    <div class="pills" id="graphPills"></div>
+    <svg class="chart" id="chart" viewBox="0 0 360 230" role="img" aria-label="各回の正解数の折れ線グラフ"></svg>
+    <div class="legend" id="legend"></div>
+    <p class="hint">グラフは、その週の中で<b>はじめて解いたときの正解数</b>です。やり直した点数は下の表に出ます。</p>
+  </div>
+  <div class="card">
+    <p class="lbl">何回目に何問正解したか（丸数字＝そのセットを解いた回数）</p>
+    <table class="hist"><thead><tr><th style="width:4.2em">セット</th><th>正解数（解いた順）</th></tr></thead><tbody id="histBody"></tbody></table>
+  </div>
+  <div class="card">
+    <p class="lbl">記録のバックアップ（機種変更のときなど）</p>
+    <div class="row"><button id="bkOut">書き出す</button><button id="bkIn">読みこむ</button></div>
+    <div id="bkArea" hidden style="margin-top:8px">
+      <textarea id="bkText"></textarea>
+      <div class="row" style="margin-top:6px"><button id="bkCopy">コピー</button><button id="bkApply" class="main">この内容を読みこむ</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== まちがいリスト ===== -->
+<section id="vNote" hidden>
+  <div class="qhead"><span class="t">まちがいリスト</span><button id="noteBack">トップへ</button></div>
+  <p class="hint">まちがえた問題が自動でたまります。3回つづけて正解するか「覚えた！」でリストから外れます。</p>
+  <div class="row"><button id="noteTest" class="main">リストからテスト（10問）</button></div>
+  <div id="noteList"></div>
+  <div class="row" style="margin-top:10px"><button id="noteAll">すべて覚えた！</button></div>
+</section>
+
+</div>
+
+<div class="modal" id="installModal" hidden><div class="card">
+  <p><b>ホーム画面に追加すると、記録が消えにくくなります。</b></p>
+  <p style="font-size:14px">iPhone：Safariの下の <b>共有ボタン（□に↑）</b> →「<b>ホーム画面に追加</b>」<br>Android：Chromeの右上の <b>︙</b> →「<b>ホーム画面に追加</b>」または「アプリをインストール」</p>
+  <p style="font-size:13px;color:var(--ink-soft)">追加したあとは、ホーム画面のアイコンから開いてください。</p>
+  <button id="installClose" class="main" style="width:100%">閉じる</button>
+</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SETS = [[{"t":"彼の所属する政党は非常に保守的であると評判だが、今回の法改整には前向きなようである。","w":"整","r":"正"},{"t":"体育祭の応援団長を努めることになり、毎日声を出す練習をしている。","w":"努","r":"務"},{"t":"地域の伝統行事について調べたことを、簡結にまとめて発表した。","w":"結","r":"潔"},{"t":"同相会の招待状が届いたので、参加するという内容の返事を手紙で送るつもりだ。","w":"相","r":"窓"},{"t":"日本は海外との防易によって、多くの食料を輸入している。","w":"防","r":"貿"},{"t":"遠足のしおりで、当日の日定と持ち物を確認した。","w":"定","r":"程"},{"t":"学校図書館の役割は図書の貸し出し、学習の場、知識の提協である。","w":"協","r":"供"},{"t":"父は家族のために、生命保健に加入している。","w":"健","r":"険"},{"t":"彼は周囲の人に対してとても気が効く性格で、みんなから好かれている。","w":"効","r":"利"},{"t":"このような具体性のない答弁では国民の支示は得られないだろう。","w":"示","r":"持"}],[{"t":"駅の売店で、父が毎週読んでいる週間誌を買った。","w":"間","r":"刊"},{"t":"商店街では、地域の活性化を計るためにさまざまな催しを開いている。","w":"計","r":"図"},{"t":"地球温暖化を防ぐため、二酸化炭素の排出量を削限する取り組みが進んでいる。","w":"限","r":"減"},{"t":"変化が速く予則困難とされるこれからの時代に必要な資質の習得を目指す。","w":"則","r":"測"},{"t":"製造課程で異物が混入した恐れがあるとして、この製品は回収された。","w":"課","r":"過"},{"t":"人工衛生から送られてきた画像で、台風の進路を予想する。","w":"生","r":"星"},{"t":"この地域は、鉄道やバスなどの公共交通期関が充実している。","w":"期","r":"機"},{"t":"今日発売され店頭に並ぶ予定の雑資を購入しに行く。","w":"資","r":"誌"},{"t":"忙しい合間を縫って、病院で予防接種の注謝を打ちに行く予定だ。","w":"謝","r":"射"},{"t":"国を納める者は、国民の声に耳を傾けるべきだ。","w":"納","r":"治"}],[{"t":"彼女がヨーロッパで仕入れてきた洋毛のセーターは好評を博し、多くの人が買い求めた。","w":"洋","r":"羊"},{"t":"日本人と西洋人はお互いの価値基順を理解し、対立のない理想的な社会を形成すべきである。","w":"順","r":"準"},{"t":"今回の話し合いでは、相手を説き伏せることに成功し、事態が激的に好転した。","w":"激","r":"劇"},{"t":"貯水地の水は必要な場合に限り放流される。","w":"地","r":"池"},{"t":"夜が開けると同時に、山頂を目指して出発した。","w":"開","r":"明"},{"t":"祖母は毎朝、仏壇に花と水を備えている。","w":"備","r":"供"},{"t":"時代の最先端を行く画期的な雑誌を創完することが長年の夢だった。","w":"完","r":"刊"},{"t":"全校集会を始めますので、生徒の皆さんは姿制を正してください。","w":"制","r":"勢"},{"t":"今年の夏は、各地で以上気象による被害が相次いだ。","w":"以","r":"異"},{"t":"私は先日、郊外にある叔父の自宅を訪門したが、あいにく留守だったので日を改めることにした。","w":"門","r":"問"}],[{"t":"都会から地方への移住を決め、安く古民家を購入できたが、雑草の追い茂る庭の手入れに四苦八苦しそうだ。","w":"追","r":"生"},{"t":"高校生になったら、自分の弱点を克復するように頑張れと、恩師に助言された。","w":"復","r":"服"},{"t":"史跡を訪問することは、社会の授業で学んだ知織を本物の歴史に変える貴重な機会になるはずだ。","w":"織","r":"識"},{"t":"先月の豪雨災害によって、被災地では多くの市民が仮説住宅で暮らすことを余儀なくされた。","w":"説","r":"設"},{"t":"試合の前日は早めに寝て、万全の状体で本番に臨みたい。","w":"体","r":"態"},{"t":"高校入試の面接試験に向けて、志望理由、将来の夢、特意科目や長所・短所などを答えられるように練習する。","w":"特","r":"得"},{"t":"全校集会で、図書委員が新しい図書室の利用規測を説明した。","w":"測","r":"則"},{"t":"プロ野球の選手になるという夢を全力で応援してくれた両親に温返しをしたい。","w":"温","r":"恩"},{"t":"長い年月が立ち、祖父母の家はすっかり古くなった。","w":"立","r":"経"},{"t":"この町には、江戸時代の歴史的な建物が今も保損されている。","w":"損","r":"存"}],[{"t":"このマンションは、地震に強い耕造になっている。","w":"耕","r":"構"},{"t":"多くの情報に惑わされず、正しく判断するための要素の一つは、相関関係と因賀関係の違いを理解することだ。","w":"賀","r":"果"},{"t":"お盆休みには、家族で祖父母の住む田舎に規制する予定だ。","w":"規","r":"帰"},{"t":"万全の準備をして試験に望むのが、大事な心構えだと学級担任から指導された。","w":"望","r":"臨"},{"t":"明日の打ち合わせに持参する資料を謝って伝えてしまったので、電話で訂正した。","w":"謝","r":"誤"},{"t":"駅前の工事現場は、関係者意外の立ち入りが禁止されている。","w":"意","r":"以"},{"t":"人質が無事に開放されたというニュースが流れた。","w":"開","r":"解"},{"t":"大会では、勝つことだけでなく参加することにも意議がある。","w":"議","r":"義"},{"t":"近年、インターネットを利用した商品の販売が拡代している。","w":"代","r":"大"},{"t":"健康診断で、血液の険査を受けた。","w":"険","r":"検"}],[{"t":"台風の接近により、運動会は来週に延機されることになった。","w":"機","r":"期"},{"t":"この工場では、熟連した職人が一つ一つ手作業で仕上げている。","w":"連","r":"練"},{"t":"環境問題に対する人々の感心は、年々高まっている。","w":"感","r":"関"},{"t":"新しい体育館の完成を祝副して、記念式典が行われた。","w":"副","r":"福"},{"t":"この絵は細部まで清密に描かれていて、まるで写真のようだ。","w":"清","r":"精"},{"t":"成積不振の現状を打開するため、日々の学習習慣を改善する。","w":"積","r":"績"},{"t":"良い経営陣なら正当な要求に耳を借すはずだ。","w":"借","r":"貸"},{"t":"数学の問題を説くのに夢中になり、気がつくと夜中になっていた。","w":"説","r":"解"},{"t":"卒業する先輩たちの送別会に向けて、部員全員で予興を企画し練習している。","w":"予","r":"余"},{"t":"企業は労動者の就労中のけがについて補償しなければならない。","w":"動","r":"働"}],[{"t":"この商品を通信販売で購入することに初めは不安もあったが、とても気に入ったので追加注問することにした。","w":"問","r":"文"},{"t":"彼女は世界の中でも特に間暖差が激しい地域にひとりで旅行に行ってきた。","w":"間","r":"寒"},{"t":"彼は積任感が強く、任された仕事は最後までやりとげる。","w":"積","r":"責"},{"t":"この町では、ごみの分別を徹底して資元の再利用に取り組んでいる。","w":"元","r":"源"},{"t":"市街地を通過してたどり着いたのは、夕日に生える湖が有名な景勝地だった。","w":"生","r":"映"},{"t":"地震で壊れた橋の複旧工事が、ようやく完了した。","w":"複","r":"復"},{"t":"姉は大学で栄要学を学び、将来は病院で働きたいと考えている。","w":"要","r":"養"},{"t":"国家の権力が法に基づいて行使されるという考え方を建前とする国家を法置国家という。","w":"置","r":"治"},{"t":"大切にしていた祖母からの贈り物の上着が敗れてしまった。","w":"敗","r":"破"},{"t":"私は足が標準より大きいので店舗に陳列されている既成品の中でぴったりの靴はなかなか見つけられない。","w":"成","r":"製"}],[{"t":"昨日の夕方のニュースによると、バスの乗務員が速やかに乗客を先道していたそうだ。","w":"道","r":"導"},{"t":"私はバスでの移動中眠くてうとうとしていたが、目の前で起こった事故に驚いて目が冷めた。","w":"冷","r":"覚"},{"t":"健康維持のために栄養バランスの良い食事や十分な睡眠など、体調簡理に気をつけよう。","w":"簡","r":"管"},{"t":"どんな情報も安易に信用せず、否判的に捉え判断することや、本質を見極め論理的に思考することが重要だ。","w":"否","r":"批"},{"t":"野生動物の保護区では、動物の生態についての調査が継属的に行われている。","w":"属","r":"続"},{"t":"気象庁の発表では今朝の地震による津波の心配はないそうだが、余震や二時災害への警戒は怠ってはいけない。","w":"時","r":"次"},{"t":"彼は以前、出判社に勤めていたが、現在はミステリー作家として活躍している。","w":"判","r":"版"},{"t":"父は毎日、電車で一時間かけて会社に通筋している。","w":"筋","r":"勤"},{"t":"文化祭の出し物のアイディアを忘れないように書き止めておいたノートを紛失してしまった。","w":"止","r":"留"},{"t":"実験の結果を整理し、その原印について班で話し合った。","w":"印","r":"因"}],[{"t":"図書館で借りた本は、期限までに必ず帰すようにしよう。","w":"帰","r":"返"},{"t":"将来の進学に備えて、毎月少しずつ著金をしている。","w":"著","r":"貯"},{"t":"数学の確率の問題は面倒くさがらずに丁寧に樹系図をかいて考えよう。","w":"系","r":"形"},{"t":"今度の定期テストに向けて、塾の先生と相談しながら綿密な計画を建てた。","w":"建","r":"立"},{"t":"暑い日が続くので、熱中症対策のため水分保給をこまめに行いましょう。","w":"保","r":"補"},{"t":"今月は毎週日曜日自習室を回放する予定ですが、変更する可能性もあるのでこまめに掲示板を確認すること。","w":"回","r":"開"},{"t":"近頃の経済活動においては、製品の品質よりも価格による競走が盛んになっている。","w":"走","r":"争"},{"t":"画規的なアイディアというものは一朝一夕で思いつくものではない。","w":"規","r":"期"},{"t":"新しい機械を導入したことで、作業の効律が大きく上がった。","w":"律","r":"率"},{"t":"新薬の効果を照明するため、何度も実験が繰り返された。","w":"照","r":"証"}],[{"t":"消費者からの様々なニーズや要望に答えるため、製品の改良に努める。","w":"答","r":"応"},{"t":"私の祖母の生まれ故郷の村は三十年前にダム建設によって湖定に沈んだ。","w":"定","r":"底"},{"t":"復数の言語を同時に学ぶことは大抵の人にとって容易なことではないだろう。","w":"復","r":"複"},{"t":"兄は将来、医療の専問家として困っている人を助けたいと話している。","w":"問","r":"門"},{"t":"彼は難しい問題にも冷清に対応できる、頼もしい人物だ。","w":"清","r":"静"},{"t":"三年以内に電気自動車用バッテリーの製造における最新技術を確律することが我が社の目標だ。","w":"律","r":"立"},{"t":"姉は念願の職に着くことができ、春から働き始める。","w":"着","r":"就"},{"t":"会社による不等解雇に対して、謝罪と賠償を求めるための裁判を起こすつもりだ。","w":"等","r":"当"},{"t":"この川は流れが速く、子どもだけで遊ぶのは危検だ。","w":"検","r":"険"},{"t":"彼が制作した鉄道模型は寸分の違いもなく注実に実物を再現したものだった。","w":"注","r":"忠"}]];
+const KEY = 'kanjiTeiseiV1';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CIRC = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+const isKanji = c => /[㐀-鿿豈-﫿々]/.test(c);
+function qid(q){ let h = 0; const s = q.t + '|' + q.w + '|' + q.r; for(const ch of s){ h = (h * 31 + ch.codePointAt(0)) >>> 0; } return h.toString(36); }
+const QMAP = {}; SETS.forEach((s, si) => s.forEach((q, qi) => { q.id = qid(q); q.set = si + 1; q.no = qi + 1; QMAP[q.id] = q; }));
+
+/* ---------- 保存 ---------- */
+let MEM = null;
+function blank(){ return { v:1, week:1, attempts:[], note:{} }; }
+function load(){
+  try{ const r = localStorage.getItem(KEY); if(r){ const d = JSON.parse(r); if(d && d.attempts) return d; } }catch(e){}
+  return MEM || blank();
+}
+let DB = load();
+function save(){ MEM = DB; try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){} }
+function today(){ const d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate(); }
+function toast(t){ const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 1800); }
+
+function show(v){ ['vTop','vQuiz','vRes','vRec','vNote'].forEach(x => $(x).hidden = x !== v); window.scrollTo(0, 0); }
+
+/* ---------- トップ ---------- */
+function setAttempts(set, week){ return DB.attempts.filter(a => a.set === set && (week == null || a.week === week)); }
+function maxWeek(){ return Math.max(2, DB.week, ...DB.attempts.map(a => a.week || 1)); }
+function renderTop(){
+  const mw = maxWeek();
+  $('weekPills').innerHTML = Array.from({length: mw}, (_, i) => `<button data-w="${i+1}" class="${DB.week === i+1 ? 'on' : ''}">${i+1}週目</button>`).join('');
+  $('weekPills').querySelectorAll('button').forEach(b => b.onclick = () => { DB.week = +b.dataset.w; save(); renderTop(); });
+  let g = '';
+  for(let s = 1; s <= SETS.length; s++){
+    const cur = setAttempts(s, DB.week);
+    const first = cur[0];
+    const cls = DB.week === 2 ? 'w2' : 'w1';
+    const sc = first ? `<span class="${cls}">${first.score}問正解</span>${cur.length > 1 ? `（${cur.length}回）` : ''}` : '<span>まだ</span>';
+    g += `<button class="set${first ? ' done' : ''}" data-s="${s}"><b>第${s}回</b><span class="sc">${sc}</span></button>`;
+  }
+  $('setGrid').innerHTML = g;
+  $('setGrid').querySelectorAll('.set').forEach(b => b.onclick = () => startSet(+b.dataset.s));
+  const doneAll = SETS.every((_, i) => setAttempts(i + 1, DB.week).length);
+  $('weekBanner').hidden = !doneAll;
+  if(doneAll) $('weekBannerText').textContent = `${DB.week}週目の10回がぜんぶ終わりました！`;
+  $('noteCount').textContent = Object.keys(DB.note).length;
+}
+$('weekNext').onclick = () => { DB.week += 1; save(); renderTop(); toast(DB.week + '週目スタート！'); };
+
+/* ---------- テスト ---------- */
+let Q = null; // {kind:'set'|'note', set, list:[q], i, ans:[{tap, inp}]}
+function startSet(s){ Q = { kind:'set', set:s, list:SETS[s-1].slice(), i:0, ans:[] }; showQ(); show('vQuiz'); }
+function startList(list, title){ Q = { kind:'note', set:0, title, list, i:0, ans:[] }; showQ(); show('vQuiz'); }
+let cur = { tap:null, tapIdx:-1 };
+function showQ(){
+  const q = Q.list[Q.i];
+  $('qTitle').textContent = (Q.kind === 'set' ? `第${Q.set}回（${DB.week}週目）` : Q.title) + `　${Q.i + 1} / ${Q.list.length}`;
+  $('qProg').style.width = (Q.i / Q.list.length * 100) + '%';
+  cur = { tap:null, tapIdx:-1 };
+  $('qSent').innerHTML = [...q.t].map((c, i) => isKanji(c) ? `<span class="k" data-i="${i}">${esc(c)}</span>` : esc(c)).join('');
+  $('qSent').querySelectorAll('.k').forEach(el => el.onclick = () => {
+    $('qSent').querySelectorAll('.k.sel').forEach(x => x.classList.remove('sel'));
+    if(cur.tapIdx === +el.dataset.i){ cur = { tap:null, tapIdx:-1 }; }
+    else { el.classList.add('sel'); cur = { tap:el.textContent, tapIdx:+el.dataset.i }; }
+    $('qTap').textContent = cur.tap || '？'; upd();
+  });
+  $('qTap').textContent = '？'; $('qInp').value = ''; upd();
+}
+function upd(){ $('qNext').disabled = !(cur.tap && $('qInp').value.trim()); }
+$('qInp').addEventListener('input', upd);
+$('qInp').addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && !$('qNext').disabled){ e.preventDefault(); next(); } });
+$('qNext').onclick = next;
+$('qSkip').onclick = () => { Q.ans.push({ tap:'', inp:'' }); adv(); };
+$('qQuit').onclick = () => { Q = null; renderTop(); show('vTop'); };
+function next(){ Q.ans.push({ tap:cur.tap, inp:$('qInp').value.trim() }); adv(); }
+function adv(){ Q.i++; if(Q.i < Q.list.length) showQ(); else finish(); }
+
+let LAST = null; // 直前の記録
+function finish(){
+  const items = Q.list.map((q, i) => { const a = Q.ans[i]; return { id:q.id, tap:a.tap, inp:a.inp, ok: a.tap === q.w && a.inp === q.r, fixed:false }; });
+  const rec = { at:Date.now(), date:today(), set:Q.set, week: Q.kind === 'set' ? DB.week : 0, kind:Q.kind, items, score: items.filter(x => x.ok).length, total: items.length };
+  DB.attempts.push(rec);
+  items.forEach(x => noteMark(x.id, x.ok));
+  save(); LAST = rec; renderRes();
+  show('vRes');
+}
+function noteMark(id, ok){
+  const n = DB.note[id];
+  if(!ok){ DB.note[id] = { miss:(n ? n.miss : 0) + 1, streak:0, last:today(), dots:((n ? n.dots : '') + '×').slice(-5) }; }
+  else if(n){ n.streak++; n.dots = (n.dots + '○').slice(-5); if(n.streak >= 3) delete DB.note[id]; }
+}
+function markSent(q){ const i = q.t.indexOf(q.w); return esc(q.t.slice(0, i)) + '<em>' + esc(q.w) + '</em>' + esc(q.t.slice(i + 1)); }
+function renderRes(){
+  const r = LAST;
+  $('rTitle').textContent = r.kind === 'set' ? `第${r.set}回（${r.week}週目）の結果` : 'まちがい直しの結果';
+  r.score = r.items.filter(x => x.ok).length;
+  $('rScore').textContent = r.score; $('rTotal').textContent = r.total;
+  const n = r.kind === 'set' ? setAttempts(r.set, null).length : 0;
+  $('rSub').textContent = r.kind === 'set' ? `第${r.set}回を解いたのは${n}回目です` : '';
+  $('rList').innerHTML = r.items.map((x, i) => {
+    const q = QMAP[x.id];
+    const you = x.tap ? `${esc(x.tap)} → ${esc(x.inp || '？')}` : 'わからない';
+    const fix = !x.ok || x.fixed ? `<button class="fix" data-i="${i}">${x.fixed ? '×にもどす' : '○にする'}</button>` : '';
+    return `<div class="res ${x.ok ? 'ok' : 'ng'}"><div class="top"><span class="mk">${x.ok ? '○' : '×'}</span><span class="tx">${i + 1}. ${markSent(q)}</span>${fix}</div>
+      <div class="ans">正解 <b>${esc(q.w)} → ${esc(q.r)}</b>　あなた ${you}</div></div>`;
+  }).join('');
+  $('rList').querySelectorAll('.fix').forEach(b => b.onclick = () => {
+    const x = r.items[+b.dataset.i];
+    if(x.fixed){ x.ok = false; x.fixed = false; noteMark(x.id, false); }
+    else { x.ok = true; x.fixed = true; const nn = DB.note[x.id]; if(nn){ nn.miss = Math.max(0, nn.miss - 1); if(nn.miss === 0) delete DB.note[x.id]; } }
+    r.score = r.items.filter(y => y.ok).length; save(); renderRes();
+  });
+  const wrong = r.items.filter(x => !x.ok);
+  $('rWrongN').textContent = wrong.length; $('rRetryWrong').disabled = !wrong.length;
+  $('rRetryWrong').onclick = () => startList(wrong.map(x => QMAP[x.id]), 'まちがい直し');
+  $('rRetry').onclick = () => r.kind === 'set' ? startSet(r.set) : startList(r.items.map(x => QMAP[x.id]), 'まちがい直し');
+}
+$('rTop').onclick = () => { renderTop(); show('vTop'); };
+$('rRec').onclick = () => openRec();
+
+/* ---------- 記録とグラフ ---------- */
+let gView = 'both';
+function firstScores(week){ return SETS.map((_, i) => { const a = setAttempts(i + 1, week)[0]; return a ? a.score : null; }); }
+function openRec(){ renderRec(); show('vRec'); }
+function renderRec(){
+  const opts = [['1','1週目'],['2','2週目'],['both','重ねて比べる']];
+  $('graphPills').innerHTML = opts.map(([k, t]) => `<button data-g="${k}" class="${gView === k ? 'on' : ''}">${t}</button>`).join('');
+  $('graphPills').querySelectorAll('button').forEach(b => b.onclick = () => { gView = b.dataset.g; renderRec(); });
+  const series = [];
+  if(gView === '1' || gView === 'both') series.push({ w:1, color:'var(--accent)', vals:firstScores(1), shape:'c' });
+  if(gView === '2' || gView === 'both') series.push({ w:2, color:'var(--w2)', vals:firstScores(2), shape:'s' });
+  drawChart(series);
+  $('legend').innerHTML = series.map(s => `<span><i style="background:${s.color}"></i>${s.w}週目</span>`).join('');
+  let h = '';
+  for(let s = 1; s <= SETS.length; s++){
+    const all = setAttempts(s, null);
+    const chips = all.map((a, i) => `<span class="chip w${Math.min(a.week, 3)}" title="${a.date}">${CIRC[i] || (i + 1)} ${a.score}問<small>（${a.week}週目・${a.date}）</small></span>`).join('') || '<span class="hint">まだ</span>';
+    h += `<tr><th>第${s}回</th><td>${chips}</td></tr>`;
+  }
+  $('histBody').innerHTML = h;
+}
+function drawChart(series){
+  const W = 360, H = 230, L = 34, R = 12, T = 18, B = 34;
+  const x = i => L + (W - L - R) * i / 9, y = v => T + (H - T - B) * (1 - v / 10);
+  let s = '';
+  for(let v = 0; v <= 10; v += 2){ s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#e3d8f5" stroke-width="1"/><text x="${L - 7}" y="${y(v) + 4}" font-size="11" text-anchor="end" fill="#6f6585">${v}</text>`; }
+  for(let i = 0; i < 10; i++){ s += `<text x="${x(i)}" y="${H - B + 17}" font-size="11" text-anchor="middle" fill="#6f6585">${i + 1}</text>`; }
+  s += `<text x="${(L + W - R) / 2}" y="${H - 3}" font-size="11" text-anchor="middle" fill="#6f6585">第〇回</text>`;
+  s += `<text x="10" y="${T - 6}" font-size="11" fill="#6f6585">問</text>`;
+  const both = series.length > 1;
+  series.forEach((sr, k) => {
+    let d = '', pen = false;
+    sr.vals.forEach((v, i) => { if(v == null){ pen = false; return; } d += (pen ? 'L' : 'M') + x(i) + ' ' + y(v) + ' '; pen = true; });
+    if(d) s += `<path d="${d}" fill="none" stroke="${sr.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    sr.vals.forEach((v, i) => {
+      if(v == null) return;
+      s += sr.shape === 'c' ? `<circle cx="${x(i)}" cy="${y(v)}" r="4.5" fill="#fff" stroke="${sr.color}" stroke-width="2.5"/>`
+                            : `<rect x="${x(i) - 4.5}" y="${y(v) - 4.5}" width="9" height="9" fill="#fff" stroke="${sr.color}" stroke-width="2.5"/>`;
+      if(both) return; // 重ねるときは数字を出さない（重なって読みにくいため。数字は下の表）
+      const dy = -9;
+      s += `<text x="${x(i)}" y="${y(v) + dy}" font-size="11" font-weight="bold" text-anchor="middle" fill="${sr.color}">${v}</text>`;
+    });
+  });
+  if(series.every(sr => sr.vals.every(v => v == null))) s += `<text x="${(L + W - R) / 2}" y="${H / 2}" font-size="13" text-anchor="middle" fill="#6f6585">まだ記録がありません</text>`;
+  $('chart').innerHTML = s;
+}
+$('recBack').onclick = () => { renderTop(); show('vTop'); };
+$('btnRec').onclick = openRec;
+
+/* バックアップ */
+let bkMode = '';
+$('bkOut').onclick = () => { bkMode = 'out'; $('bkArea').hidden = false; $('bkText').value = 'KT1:' + btoa(unescape(encodeURIComponent(JSON.stringify(DB)))); $('bkApply').hidden = true; $('bkCopy').hidden = false; };
+$('bkIn').onclick = () => { bkMode = 'in'; $('bkArea').hidden = false; $('bkText').value = ''; $('bkText').placeholder = 'ここに書き出した文字をはりつけてください'; $('bkApply').hidden = false; $('bkCopy').hidden = true; };
+$('bkCopy').onclick = async () => { try{ await navigator.clipboard.writeText($('bkText').value); toast('コピーしました'); }catch(e){ $('bkText').select(); toast('選んでコピーしてください'); } };
+$('bkApply').onclick = () => {
+  try{ const t = $('bkText').value.trim().replace(/^KT1:/, ''); const d = JSON.parse(decodeURIComponent(escape(atob(t)))); if(!d || !Array.isArray(d.attempts)) throw 0;
+    DB = d; save(); renderRec(); $('bkArea').hidden = true; toast('読みこみました'); }catch(e){ toast('読みこめませんでした'); }
+};
+
+/* ---------- まちがいリスト ---------- */
+let undoAll = null;
+function noteItems(){ return Object.entries(DB.note).filter(([id]) => QMAP[id]).map(([id, n]) => ({ q:QMAP[id], n })).sort((a, b) => b.n.miss - a.n.miss || a.n.streak - b.n.streak); }
+function renderNote(){
+  const items = noteItems();
+  $('noteList').innerHTML = items.length ? items.map(({ q, n }) => `<div class="mis"><div class="tx">${markSent(q)}</div>
+    <div class="meta"><span>第${q.set}回(${q.no})</span><span>正解 <b>${esc(q.w)}→${esc(q.r)}</b></span><span>ミス${n.miss}回</span><span class="dots">${esc(n.dots)}</span><span>${esc(n.last)}</span>
+    <button data-id="${q.id}">覚えた！</button></div></div>`).join('') : (undoAll ? '' : '<p class="hint" style="text-align:center;margin:20px">まちがいリストは空です</p>');
+  $('noteList').querySelectorAll('button[data-id]').forEach(b => b.onclick = () => {
+    const card = b.closest('.mis'); const h = card.offsetHeight; delete DB.note[b.dataset.id]; save();
+    card.style.visibility = 'hidden'; card.style.height = h + 'px'; // 位置が動かないように
+    $('noteCount').textContent = Object.keys(DB.note).length;
+  });
+  $('noteTest').disabled = !items.length;
+  $('noteAll').textContent = undoAll ? '取り消す' : `すべて覚えた！（${items.length}問）`;
+  $('noteAll').disabled = !items.length && !undoAll;
+}
+$('noteAll').onclick = () => {
+  if(undoAll){ DB.note = undoAll; undoAll = null; } else { undoAll = DB.note; DB.note = {}; }
+  save(); renderNote();
+};
+$('noteTest').onclick = () => { const it = noteItems().slice(0, 10).map(x => x.q); if(it.length) startList(it, 'リストからテスト'); };
+$('btnNote').onclick = () => { undoAll = null; renderNote(); show('vNote'); };
+$('noteBack').onclick = () => { undoAll = null; renderTop(); show('vTop'); };
+
+/* ---------- ホーム画面に追加（PWA）・保存の固定 ---------- */
+let deferredPrompt = null;
+const standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+const canPWA = (location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator;
+if(canPWA){
+  try{ navigator.serviceWorker.register('sw.js').catch(() => {}); }catch(e){}
+  if(!standalone) $('btnInstall').hidden = false;
+}
+(async () => {
+  let persisted = false;
+  try{ if(navigator.storage && navigator.storage.persist){ persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } }catch(e){}
+  $('saveHint').textContent = standalone ? (persisted ? '記録はこの端末に保存されています（自動で消えない設定）。' : '記録はこの端末に保存されています。')
+    : '記録が自動で消えないように、「ホーム画面に追加」してアイコンから開いてください。';
+})();
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if(!standalone) $('btnInstall').hidden = false; });
+$('btnInstall').onclick = async () => {
+  if(deferredPrompt){ try{ deferredPrompt.prompt(); await deferredPrompt.userChoice; }catch(e){} deferredPrompt = null; return; }
+  $('installModal').hidden = false;
+};
+$('installClose').onclick = () => $('installModal').hidden = true;
+
+renderTop();
+</script>
+</body>
+</html>
